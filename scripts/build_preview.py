@@ -24,7 +24,7 @@ creator_defaults=ast.literal_eval(next(n.value for n in ast.parse((ROOT/'studio/
 shim='''<script>
 window.previewCreatorDefaults=CREATOR_DEFAULTS;
 const previewBase='/Clipora';
-const previewPath=()=>location.pathname.replace(/^\\/Clipora/,'')||'/';
+const previewPath=()=>location.hash.startsWith('#/app') ? location.hash.slice(1) : location.pathname.replace(/^\\/Clipora/,'')||'/';
 const previewFixtures=FIXTURES;
 const previewFetch=window.fetch.bind(window);
 window.fetch=async(input,options={})=>{
@@ -42,7 +42,11 @@ window.fetch=async(input,options={})=>{
 };
 for(const name of ['pushState','replaceState']){
  const original=history[name].bind(history);
- history[name]=(state,title,url)=>original(state,title,typeof url==='string'&&url.startsWith('/')&&!url.startsWith(previewBase)?previewBase+url:url);
+ history[name]=(state,title,url)=>{
+  if(typeof url==='string'&&url.startsWith('/app'))url=previewBase+'/app/#'+url;
+  else if(typeof url==='string'&&url.startsWith('/')&&!url.startsWith(previewBase))url=previewBase+url;
+  return original(state,title,url);
+ };
 }
 </script><script src="/Clipora/assets/demo.js"></script>'''.replace('FIXTURES',json.dumps(fixture).replace('</','<\\/')).replace('CREATOR_DEFAULTS',json.dumps(creator_defaults))
 banner='''<div style="position:fixed;bottom:10px;left:50%;transform:translateX(-50%);z-index:99999;max-width:95vw;background:#252525;color:#fff;border:1px solid #e9ff32;border-radius:20px;padding:9px 18px;font:12px/1.5 system-ui;text-align:center">Interactive demo - Workspaces saved in this browser <button data-demo-setup style="margin-left:8px;border:0;border-radius:14px;padding:5px 10px;background:#e9ff32;color:#252525">Run full app</button></div>'''
