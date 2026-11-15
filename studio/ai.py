@@ -254,7 +254,8 @@ def call(model: str, prompt: str, schema: dict):
 def _gemini(model, prompt, schema):
     body = {"contents": [{"role": "user", "parts": [{"text": prompt}]}],
             "generationConfig": {"temperature": 0.4, "responseMimeType": "application/json", "responseSchema": schema}}
-    r = httpx.post(f"{base_url()}/{model}:generateContent", json=body, headers={"x-goog-api-key": key()}, timeout=120)
+    r = httpx.post(f"{base_url()}/{model}:generateContent", json=body, headers={"x-goog-api-key": key()},
+                   timeout=httpx.Timeout(120, connect=10))
     if r.status_code != 200:
         _fail(r, model)
     data = r.json()
@@ -271,7 +272,8 @@ def _openai(model, prompt, schema):
     extras = [{"temperature": 0.4, "response_format": {"type": "json_object"}}, {"response_format": {"type": "json_object"}}, {}]
     r = None
     for extra in extras:
-        r = httpx.post(f"{base_url()}/chat/completions", json={**body, **extra}, headers=headers, timeout=180)
+        r = httpx.post(f"{base_url()}/chat/completions", json={**body, **extra}, headers=headers,
+                       timeout=httpx.Timeout(180, connect=10))
         if r.status_code not in (400, 422):
             break
     if r.status_code != 200:
@@ -283,7 +285,7 @@ def _openai(model, prompt, schema):
 
 def _anthropic(model, prompt, schema):
     body = {"model": model, "max_tokens": 8192, "messages": [{"role": "user", "content": _wrapped(prompt, schema)}]}
-    r = httpx.post(f"{base_url()}/messages", json=body, timeout=180,
+    r = httpx.post(f"{base_url()}/messages", json=body, timeout=httpx.Timeout(180, connect=10),
                    headers={"x-api-key": key(), "anthropic-version": "2023-06-01"})
     if r.status_code != 200:
         _fail(r, model)
